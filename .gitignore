@@ -1,0 +1,13 @@
+data/vcf/
+*.vcf.gz
+*.vcf.gz.tbi
+*.bed
+*.bim
+*.fam
+*.assoc
+singularity_cache/
+work_*/
+results_*/
+*.log
+.nextflow/
+.nextflow.log*
