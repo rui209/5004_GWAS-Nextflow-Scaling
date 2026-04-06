@@ -1,0 +1,56 @@
+#!/bin/bash
+#PBS -N GWAS_22chr_Repeats
+#PBS -l nodes=1:ppn=24
+#PBS -l walltime=72:00:00
+#PBS -l mem=64gb
+#PBS -j oe
+
+cd $PBS_O_WORKDIR
+
+module load jre/1.8.0_162
+module load singularity
+
+find .nextflow* -name "LOCK" -delete
+
+export SINGULARITY_CACHEDIR=/hpctmp/YOUR_ID/5004/singularity_cache
+export NXF_SINGULARITY_CACHEDIR=/hpctmp/YOUR_ID/5004/singularity_cache
+export NXF_HOME=/hpctmp/YOUR_ID/5004/.nextflow_cache
+
+echo "=== Checking VCF files ==="
+ls /hpctmp/YOUR_ID/5004/data/vcf/*.vcf.gz | wc -l
+date
+
+echo "=== Starting 22-chr Benchmark (3 runs x 5 profiles) ==="
+
+for run in 1 2 3; do
+    echo "====== RUN ${run} ======"
+    date
+
+    for profile in p1 p4 p8 p16 p22; do
+        echo "--- Profile ${profile}, Run ${run} ---"
+        date
+
+        ./nextflow run main.nf \
+            -profile ${profile} \
+            -w /hpctmp/YOUR_ID/5004/work_${profile}_run${run} \
+            -with-report  results_${profile}_run${run}/report.html \
+            -with-timeline results_${profile}_run${run}/timeline.html \
+            -with-trace   results_${profile}_run${run}/trace.txt
+
+        echo "--- Profile ${profile}, Run ${run} done ---"
+        date
+
+        rm -rf /hpctmp/YOUR_ID/5004/work_${profile}_run${run}
+    done
+
+    echo "====== RUN ${run} COMPLETE ======"
+    date
+done
+
+echo "=== Generating benchmark plots ==="
+singularity exec \
+    /hpctmp/YOUR_ID/5004/singularity_cache/quay.io-jupyter-scipy-notebook-latest.img \
+    python3 scripts/plot_scaling_analysis.py
+
+echo "=== All Done ==="
+date
